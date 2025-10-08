@@ -1,0 +1,1 @@
+# backend/app/models/spot_status.py
