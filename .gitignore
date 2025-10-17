@@ -209,3 +209,4 @@ __marimo__/
 
 # Other
 ai_cv/tests/test_data/
+ai_cv/yolov8n.pt
