@@ -4,13 +4,13 @@ from deep_sort_realtime.deepsort_tracker import DeepSort
 import numpy as np
 
 class VehicleTracker:
-    def __init__(self, max_age = 30, min_hits = 3, iou_thresh=0.3):
-        self.sort = DeepSort(max_age=max_age, min_hits=min_hits, iou_threshold=iou_thresh)
+    def __init__(self, max_age = 30, min_hits = 3, nms_max_ol=1.0, iou_thresh=0.3):
+        self.sort = DeepSort(max_age=max_age, n_init=min_hits, nms_max_overlap=nms_max_ol, max_cosine_distance=iou_thresh)
 
     def update(self, detections):
         # Convert detections to array [x1, y1, x2, y2, score] for the tracker
         det_array = np.array([d["xyxy"] + [d["conf"]] for d in detections])
-        tracks = self.sort.update(det_array) # array with [x1, y1, x2, y2, track_id] per row
+        tracks = self.sort.update_tracks(det_array) # array with [x1, y1, x2, y2, track_id] per row
 
         out = []
         for t in tracks:
