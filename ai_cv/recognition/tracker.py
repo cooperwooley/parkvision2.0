@@ -36,7 +36,7 @@ class VehicleTracker:
                     best = d
             if best is not None:
                 out.append({
-                    "track_id": int(id),
+                    "track_id": int(tid),
                     "bbox": [x1, y1, x2, y2],
                     "conf": best["conf"],
                     "cls": best["cls"],
