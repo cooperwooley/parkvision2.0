@@ -1,11 +1,8 @@
-version: "3.9"
 services:
   ai_cv:
     build: .
     container_name: parkvision_ai_cv
     volumes:
-      - .:/app
-    working_dir: /app
-    command: python run_pipeline.py
-    environment:
-      - PYTHONUNBUFFERED=1
+      - .:/workspace
+    working_dir: /workspace
+
