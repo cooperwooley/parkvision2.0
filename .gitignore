@@ -210,3 +210,7 @@ __marimo__/
 # Other
 ai_cv/tests/test_data/
 ai_cv/yolov8n.pt
+
+# Model Training data
+/runs
+/ai_cv/tests/lot_test_data

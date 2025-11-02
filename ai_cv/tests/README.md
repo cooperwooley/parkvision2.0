@@ -1,0 +1,1 @@
+Model has been saved as best.pt and was trained off of https://www.kaggle.com/datasets/farzadnekouei/top-view-vehicle-detection-image-dataset
