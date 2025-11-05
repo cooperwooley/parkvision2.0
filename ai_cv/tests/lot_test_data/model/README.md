@@ -1,0 +1,1 @@
+This folder contains a Dockerfile made to setup an enviroment to run on my AMD gpu it probably wont run properly on your systems but uploading the dockerfile
