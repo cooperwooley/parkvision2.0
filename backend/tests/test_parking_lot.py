@@ -32,7 +32,7 @@ test_lot_data = {
     "video_start_time": 0.0
 }
 
-# Tests for parking lot routes
+# Test that creating a parking lot works
 def test_create_parking_lot():
     response = client.post("/lots/", json=test_lot_data)
     assert response.status_code == 201
@@ -40,6 +40,7 @@ def test_create_parking_lot():
     assert data["name"] == test_lot_data["name"]
     assert "id" in data
 
+# Test that getting parking lots works
 def test_get_all_parking_lots():
     response = client.get("/lots/")
     assert response.status_code == 200
@@ -47,6 +48,7 @@ def test_get_all_parking_lots():
     assert isinstance(data, list)
     assert len(data) > 0
 
+# Test that getting a parking lot by ID works
 def test_get_parking_lot_by_id():
     create_resp = client.post("/lots/", json=test_lot_data)
     lot_id = create_resp.json()["id"]
@@ -56,6 +58,7 @@ def test_get_parking_lot_by_id():
     data = response.json()
     assert data["id"] == lot_id
 
+# Test that updating a parking lot works
 def test_update_parking_lot():
     create_resp = client.post("/lots/", json=test_lot_data)
     lot_id = create_resp.json()["id"]
@@ -67,6 +70,7 @@ def test_update_parking_lot():
     assert data["description"] == "Updated description"
     assert data["total_spaces"] == 60
 
+# Test that deleting a parking lot works
 def test_delete_parking_lot():
     create_resp = client.post("/lots/", json=test_lot_data)
     lot_id = create_resp.json()["id"]
