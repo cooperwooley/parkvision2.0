@@ -48,9 +48,12 @@ docker compose exec backend pytest
 
 **Run specific test file:**
 ```bash
-docker compose exec backend pytest tests/test_auth.py -v
-docker compose exec backend pytest tests/test_parking_lot.py -v
+# tests live under `app/tests` in the container; example paths below
+docker compose exec backend pytest app/tests/test_parking_lot.py -v
+docker compose exec backend pytest app/tests/test_auth_routes.py -v
 ```
+
+Note: Tests run inside the container use a separate test database by default. The test database URL is read from the `TEST_DATABASE_URL` environment variable (defaults to `postgresql://parkvision:parkvision@db:5432/parkvision_test`). The test fixtures in `app/tests/conftest.py` create/drop tables and clean data so your production `parkvision` database is not modified when running tests.
 
 **Run tests with coverage:**
 ```bash
@@ -70,9 +73,10 @@ pytest
 ```
 
 **Run specific test file:**
+**Run specific test file:**
 ```bash
-pytest tests/test_auth.py -v
-pytest tests/test_parking_lot.py -v
+pytest app/tests/test_auth_routes.py -v
+pytest app/tests/test_parking_lot.py -v
 ```
 
 ---
@@ -143,10 +147,11 @@ backend/
 │   └── utils/
 │       ├── db.py               # Database setup
 │       └── config.py           # Configuration
-├── tests/
-│   ├── conftest.py             # Pytest configuration
-│   ├── test_auth.py            # Authentication tests
-│   └── test_parking_lot.py     # Parking lot tests
+├── app/
+│   └── tests/                  # Pytest test files and fixtures (run inside container)
+│       ├── conftest.py         # Pytest configuration and test DB fixtures
+│       ├── test_auth_routes.py # Authentication route tests
+│       └── test_parking_lot.py # Parking lot route tests
 ├── requirements.txt            # Python dependencies
 ├── Dockerfile                  # Docker image definition
 ├── docker-compose.yml          # Docker Compose configuration
@@ -166,6 +171,10 @@ backend/
 
 ### Authentication
 - `POST /auth/signup` - Create a new user with password hashing
+- `POST /auth/login` - Authenticate a user
+Note: the implementation exposes `/auth/register` for creating users (not `/auth/signup`).
+So the correct endpoints are:
+- `POST /auth/register` - Create a new user with password hashing
 - `POST /auth/login` - Authenticate a user
 
 ### Analytics

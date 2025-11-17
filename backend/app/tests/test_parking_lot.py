@@ -1,25 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.utils.db import Base, engine, SessionLocal
-from app.models.parking_lot import ParkingLot
 
+# Create client - will use test database via dependency override
 client = TestClient(app)
 
-@pytest.fixture(scope="module", autouse=True)
-def setup_database():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-@pytest.fixture()
-def db_session():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@pytest.fixture(autouse=True)
+def use_test_db(override_get_db):
+    pass
 
 # Test data for parking lot
 test_lot_data = {
@@ -42,6 +30,10 @@ def test_create_parking_lot():
 
 # Test that getting parking lots works
 def test_get_all_parking_lots():
+    # Create a parking lot first
+    create_resp = client.post("/lots/", json=test_lot_data)
+    assert create_resp.status_code == 201
+    
     response = client.get("/lots/")
     assert response.status_code == 200
     data = response.json()
