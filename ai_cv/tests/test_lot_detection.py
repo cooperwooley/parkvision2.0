@@ -73,26 +73,30 @@ def test_detect_on_sample_image(json_path, image_path):
     
     oc_det = []
     uc_det = []
+
+    """Convert polygon points to bounding box [x1, y1, x2, y2]"""
+    def polygon_to_bbox(polygon_points):
+        if not polygon_points or len(polygon_points) == 0:
+            return None
+        points = np.array(polygon_points)
+        x_min, y_min = points.min(axis=0)
+        x_max, y_max = points.max(axis=0)
+        return [x_min, y_min, x_max, y_max] 
         
     for box in occupied:
         # Ensure bbox is flat
-        bbox = box['bbox']
-        if isinstance(bbox[0], (list, tuple)):
-            bbox = bbox[0] + bbox[2]
-
-        oc_det.append({
-            "xyxy": bbox,
-            "conf": box.get('conf', 1.0),
-            "cls": 0,
-            "name": "TAKEN"
-        })
+        bbox = polygon_to_bbox(box["bbox"])
+        if bbox:
+            oc_det.append({
+                "xyxy": bbox,
+                "conf": box.get('conf', 1.0),
+                "cls": 0,
+                "name": "TAKEN"
+            })
 
     for box in unoccupied:
-        if box not in occupied:
-            bbox = box['bbox']
-            if isinstance(bbox[0], (list, tuple)):
-                bbox = bbox[0] + bbox[2]
-
+        bbox = polygon_to_bbox(box["bbox"]).
+        if bbox:
             uc_det.append({
                 "xyxy": bbox,
                 "conf": 0,
