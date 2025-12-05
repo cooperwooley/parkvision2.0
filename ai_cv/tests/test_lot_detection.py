@@ -69,54 +69,65 @@ def test_detect_on_sample_image(json_path, image_path):
         raise FileNotFoundError(f"❌ Could not load image from: {img_path}")
     det = LotDetector(model_path="best.pt", iou_thresh = .001, conf_thresh = .001)
 
-    occupied, unoccupied, detections = det.detect(img, json_path)
-    
+    occupied, blocked, unoccupied, detections = det.detect(img, json_path)
+
+    blocked_det = []
     oc_det = []
     uc_det = []
 
-    """Convert polygon points to bounding box [x1, y1, x2, y2]"""
-    def polygon_to_bbox(polygon_points):
-        if not polygon_points or len(polygon_points) == 0:
-            return None
-        points = np.array(polygon_points)
-        x_min, y_min = points.min(axis=0)
-        x_max, y_max = points.max(axis=0)
-        return [x_min, y_min, x_max, y_max] 
-        
+    for box in blocked:
+        # Ensure bbox is flat
+        bbox = box['bbox']
+        if isinstance(bbox[0], (list, tuple)):
+            bbox = bbox[0] + bbox[2]
+
+        blocked_det.append({
+            "xyxy": bbox,
+            "conf": box.get('conf', 1.0),
+            "cls": 0,
+            "name": "BLOCKED"
+        })
+
     for box in occupied:
         # Ensure bbox is flat
-        bbox = polygon_to_bbox(box["bbox"])
-        if bbox:
-            oc_det.append({
-                "xyxy": bbox,
-                "conf": box.get('conf', 1.0),
-                "cls": 0,
-                "name": "TAKEN"
-            })
+        bbox = box['bbox']
+        if isinstance(bbox[0], (list, tuple)):
+            bbox = bbox[0] + bbox[2]
+
+        oc_det.append({
+            "xyxy": bbox,
+            "conf": box.get('conf', 1.0),
+            "cls": 0,
+            "name": "TAKEN"
+        })
 
     for box in unoccupied:
-        bbox = polygon_to_bbox(box["bbox"]).
-        if bbox:
+        if box not in occupied:
+            bbox = box['bbox']
+            if isinstance(bbox[0], (list, tuple)):
+                bbox = bbox[0] + bbox[2]
+
             uc_det.append({
                 "xyxy": bbox,
                 "conf": 0,
                 "cls": 0,
                 "name": 'OPEN'
             })
-    
-    #detects = annotate_detections(img, detections, (0,0,255))
+
+    detects = annotate_detections(img, detections, (0,0,255))
     tannotated = annotate_detections(img, oc_det, (0,255,0))
-    annotated = annotate_detections(tannotated, uc_det, (255,0,0))
+    ttan = annotate_detections(tannotated, blocked_det, (0,255,255))
+    annotated = annotate_detections(ttan, uc_det, (255,0,0))
 
     out_dir = os.path.join(os.path.dirname(__file__), "outputs")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"detected_lot_{os.path.basename(image_path)}")
-    cv.imwrite(out_path, annotated)
+    cv.imwrite(out_path, detects)
 
     print(f"Annotated detection saved to: {out_path}")
-    
 
-    # Print results, stored as 
+
+    # Print results, stored as
 
 
 def test_multiple_img(folder_path):
@@ -124,37 +135,37 @@ def test_multiple_img(folder_path):
     # Also needs to be specifically .png and .json
     json_files = [pos_json for pos_json in os.listdir(folder_path) if pos_json.endswith('.json')]
     img_files = [pos_json for pos_json in os.listdir(folder_path) if pos_json.endswith('.png')]
-    
+
     for timg, json in zip(img_files, json_files):
         img_path = os.path.join(os.path.dirname(folder_path, timg))
         json_path = os.path.join(os.path.dirname(folder_path, json))
         img = cv.imread(img_path)
-        
+
         if img is None:
             raise FileNotFoundError(f"❌ Could not load image from: {img_path}")
-        
+
         det = LotDetector(model_path="best.pt", json_path=json_path)
         results = det.detect(img)
-        
-        
-        
 
-    
+
+
+
+
 if __name__ == "__main__":#
     if len(sys.argv) >1:
         xml_path = sys.argv[1]
     else:
         print("Please use with <command> <filepath to image>")
-        
+
     annotations = extract_points_from_cvat(xml_path)
-    
+
     for id, polygons in annotations.items():
         jid = id + ".json"
         json_path = os.path.join("lot_test_data/images/archive", jid)
         convert_to_json(polygons, json_path)
-        
+
         iid = id + ".png"
         image_path = os.path.join("lot_test_data/images/archive/images", iid)
-        
-        test_detect_on_sample_image(json_path, image_path) 
-        
+
+        test_detect_on_sample_image(json_path, image_path)
+
