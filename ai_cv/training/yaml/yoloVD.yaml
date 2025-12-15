@@ -1,0 +1,11 @@
+path: /workspace/datasets
+train: yoloVD/vehicle dataset/train
+val: yoloVD/vehicle dataset/valid
+
+names:
+  0: vehicle
+  1: threewheel
+  2: vehicle
+  3: vehicle
+  4: motorbike
+  5: vehicle

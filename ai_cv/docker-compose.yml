@@ -1,0 +1,8 @@
+services:
+  ai_cv:
+    build: .
+    container_name: parkvision_ai_cv
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+
