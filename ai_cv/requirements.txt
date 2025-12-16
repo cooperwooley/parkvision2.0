@@ -1,0 +1,11 @@
+ultralytics
+opencv-python
+numpy==1.24.4
+scipy
+pandas
+deep-sort-realtime
+roboflow
+kagglehub
+opendatasets
+gdown
+tqdm
