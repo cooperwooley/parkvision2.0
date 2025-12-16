@@ -68,11 +68,12 @@ def test_init_and_update_spot():
     # after bulk vacant, both spots should report 'vacant'
     s_after_vac = client.get(f"/lots/{lot_id}/status").json()
     for s in all_spots:
-        assert s_after_vac["summary"][s["id"]] == "vacant"
+        # summary keys may be strings when returned as JSON; check both
+        assert s_after_vac["summary"].get(str(s["id"])) == "vacant" or s_after_vac["summary"].get(s["id"]) == "vacant"
     # now mark first spot occupied
     first_id = all_spots[0]["id"]
     bulk2 = client.post(f"/lots/{lot_id}/bulk_update", json={"updates": [{"spot_id": first_id, "status": "occupied", "meta": {"frame": 1}}]})
     assert bulk2.status_code == 200
     # check summary
     s2 = client.get(f"/lots/{lot_id}/status").json()
-    assert s2["summary"][first_id] == "occupied" or s2["summary"][str(first_id)] == "occupied"
+    assert s2["summary"].get(first_id) == "occupied" or s2["summary"].get(str(first_id)) == "occupied"

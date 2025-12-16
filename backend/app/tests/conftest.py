@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.utils.db import Base
 from app.main import app
-from app.api import lot_routes, auth_routes
+from app.api import lot_routes, auth_routes, cv_routes
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.models.parking_spot import ParkingSpot
@@ -24,6 +24,8 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
+    # ensure a clean schema for the test database
+    Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
@@ -69,6 +71,7 @@ def override_get_db():
     # Apply override for all route modules that expose get_db
     app.dependency_overrides[lot_routes.get_db] = _get_db
     app.dependency_overrides[auth_routes.get_db] = _get_db
+    app.dependency_overrides[cv_routes.get_db] = _get_db
     try:
         yield
     finally:
