@@ -136,10 +136,12 @@ backend/
 │   │   ├── user.py
 │   │   ├── vehicle.py
 │   │   ├── parking_lot.py
-│   │   ├── parking_spot.py
-│   │   ├── spot_status.py
+│   │   ├── parking_spot.py      # stores spot geometry (JSON) and metadata
+│   │   ├── spot_status.py       # records occupancy detections
 │   │   └── parking_analytics.py
 │   ├── schemas/                # Pydantic schemas
+│   │   ├── parking_lot.py
+│   │   └── parking_spot.py
 │   ├── services/               # Business logic
 │   │   ├── auth_service.py     # Password hashing & authentication
 │   │   ├── cv_integration.py   # CV system integration
@@ -168,6 +170,14 @@ backend/
 - `GET /lots/{lot_id}` - Get a specific parking lot
 - `PUT /lots/{lot_id}` - Update a parking lot
 - `DELETE /lots/{lot_id}` - Delete a parking lot
+
+Additional CV / demo endpoints (AI integration)
+- `POST /lots/{lot_id}/init` - Initialize parking spots from AI annotation payload (annotations: list of polygons). Returns created `parking_spots` with `id` and `polygon`.
+- `POST /lots/{lot_id}/spots/{spot_id}/update` - Update a single spot's occupancy status. Body: `{ "status": "occupied"|"vacant", "meta": {...} }`.
+- `POST /lots/{lot_id}/bulk_update` - Bulk update multiple spot statuses in one request. Body: `{ "updates": [ {"spot_id":..., "status":"occupied", "meta":{...}}, ... ] }`.
+- `GET /lots/{lot_id}/spots` - Returns detailed spot list for a lot including parsed `polygon` and latest status/meta/timestamp per spot.
+- `GET /lots/{lot_id}/status` - Returns a compact summary mapping `spot_id -> latest_status` for quick frontend polling.
+- `GET /lots/{lot_id}/spots/{spot_id}/status` - Returns latest status and meta for a single spot.
 
 ### Authentication
 - `POST /auth/signup` - Create a new user with password hashing

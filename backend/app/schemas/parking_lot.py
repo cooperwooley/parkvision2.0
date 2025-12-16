@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
+from app.schemas.parking_spot import ParkingSpotRead
 from datetime import datetime
 
 class ParkingLotBase(BaseModel):
@@ -27,6 +28,7 @@ class ParkingLotRead(ParkingLotBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    parking_spots: Optional[List[ParkingSpotRead]] = []
 
     model_config = ConfigDict(from_attributes=True)
 
