@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.utils.db import SessionLocal
+from app.utils.jwt import create_access_token
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserRead, UserLogin
 from app.services.auth_service import hash_password, verify_password, add_user, authenticate_user
@@ -39,7 +40,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 # Login user
-@router.post("/login", response_model=UserRead)
+@router.post("/login")
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user = authenticate_user(db, credentials.username, credentials.password)
     if not user:
@@ -47,12 +48,31 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
-    
+
     user.last_login = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
-    
-    return user
+
+    access_token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "username": user.username,
+            "is_admin": user.is_admin,
+        }
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_admin": user.is_admin,
+            "created_at": user.created_at,
+            "last_login": user.last_login,
+        },
+    }
 
 # Get current user
 @router.get("/users/{user_id}", response_model=UserRead)
