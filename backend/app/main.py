@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.utils.db import Base, engine
 from app.models import user, parking_analytics, spot_status, vehicle, parking_lot, parking_spot
-from app.api import lot_routes, auth_routes
+from app.api import lot_routes, auth_routes, cv_routes
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ app.add_middleware(
 
 app.include_router(lot_routes.router)
 app.include_router(auth_routes.router)
+app.include_router(cv_routes.router)
 
 @app.get("/")
 def root():
