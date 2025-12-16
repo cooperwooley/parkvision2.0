@@ -1,4 +1,5 @@
 // app/admin/_layout.tsx
+
 import { Slot, Link } from "expo-router";
 import { View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from "react-native";
 
