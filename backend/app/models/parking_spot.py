@@ -16,6 +16,7 @@ class ParkingSpot(Base):
     height = Column(Integer, nullable=True)
     polygon = Column(JSON, nullable=True)
     annotation_id = Column(Integer, nullable=True)
+    current_status = Column(String(20), default="free", index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     parking_lot = relationship("ParkingLot", back_populates="parking_spots")

@@ -136,8 +136,11 @@ def update_spot(lot_id: int, spot_id: int, payload: dict, db: Session = Depends(
     meta = payload.get("meta")
     ss = SpotStatus(parking_spot_id=spot.id, status=status_val, detection_method="ai_cv", meta=json.dumps(meta) if meta is not None else None)
     db.add(ss)
+    # update current_status on the spot
+    spot.current_status = status_val
+    db.add(spot)
     db.commit()
-    return {"spot_id": spot.id, "status": status_val}
+    return {"spot_id": spot.id, "status": status_val, "current_status": spot.current_status}
 
 
 # Bulk update multiple spot statuses in one request
@@ -164,6 +167,9 @@ def bulk_update_spots(lot_id: int, payload: dict, db: Session = Depends(get_db))
 
         ss = SpotStatus(parking_spot_id=spot.id, status=status, detection_method="ai_cv", meta=json.dumps(meta) if meta is not None else None)
         db.add(ss)
+        # set denormalized current status for quick reads
+        spot.current_status = status
+        db.add(spot)
         results.append({"spot_id": spot.id, "status": status})
 
     db.commit()
@@ -206,7 +212,8 @@ def list_spots_with_status(lot_id: int, db: Session = Depends(get_db)):
             "polygon": poly,
             "last_status": latest_status,
             "last_detected_at": latest_detected_at,
-            "last_meta": latest_meta
+            "last_meta": latest_meta,
+            "current_status": getattr(spot, "current_status", None)
         })
 
     return {"lot_id": lot.id, "spots": spots}
@@ -221,8 +228,8 @@ def lot_status_summary(lot_id: int, db: Session = Depends(get_db)):
 
     summary = {}
     for spot in lot.parking_spots:
-        latest = db.query(SpotStatus).filter(SpotStatus.parking_spot_id == spot.id).order_by(SpotStatus.detected_at.desc()).first()
-        summary[spot.id] = latest.status if latest else None
+        # prefer denormalized current_status for fast reads
+        summary[spot.id] = getattr(spot, "current_status", None)
 
     return {"lot_id": lot.id, "summary": summary}
 
@@ -233,14 +240,16 @@ def spot_latest_status(lot_id: int, spot_id: int, db: Session = Depends(get_db))
     spot = db.query(ParkingSpot).filter(ParkingSpot.id == spot_id, ParkingSpot.parking_lot_id == lot_id).first()
     if not spot:
         raise HTTPException(status_code=404, detail="Parking spot not found")
-
+    # Return the denormalized current status; include latest event metadata if available
     latest = db.query(SpotStatus).filter(SpotStatus.parking_spot_id == spot.id).order_by(SpotStatus.detected_at.desc()).first()
-    if not latest:
-        return {"spot_id": spot.id, "status": None}
-
     try:
-        meta = json.loads(latest.meta) if latest.meta else None
+        meta = json.loads(latest.meta) if latest and latest.meta else None
     except Exception:
-        meta = latest.meta
+        meta = latest.meta if latest else None
 
-    return {"spot_id": spot.id, "status": latest.status, "detected_at": latest.detected_at.isoformat(), "meta": meta}
+    return {
+        "spot_id": spot.id,
+        "status": getattr(spot, "current_status", None),
+        "detected_at": latest.detected_at.isoformat() if latest else None,
+        "meta": meta
+    }
