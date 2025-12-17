@@ -37,7 +37,7 @@ class LotDetector:
                 # Ensure points are in correct format
                 if isinstance(pts[0], (int, float)):
                     # If it's flat, reshape
-                    pts = [[pts[i], pts[i+1]] for i in range(0, len(pts, 2))]
+                    pts = [[pts[i], pts[i+1]] for i in range(0, len(pts), 2)]
                 natural_poly.append({
                     "bbox": pts,
                     "conf": 0,
@@ -205,25 +205,25 @@ class LotDetector:
             best_iou = 0
             best_lot_idx = None
 
-        for idx, lot_box in enumerate(natural_poly):
+            for idx, lot_box in enumerate(natural_poly):
             if idx in matched_lot_indices:
                 continue
 
-            iou = self._poly_rect_iou(lot_box["bbox"], track["bbox"])
-            if iou > 0.3 and iou > best_iou: # IOU thresh
-                best_iou = iou
-                best_lot_idx = idx
+                iou = self._poly_rect_iou(lot_box["bbox"], track["bbox"])
+                if iou > 0.3 and iou > best_iou: # IOU thresh
+                    best_iou = iou
+                    best_lot_idx = idx
 
-        if best_lot_idx is not None:
-            matched_lot_indices.add(best_lot_idx)
-            lot_box = natural_poly[best_lot_idx]
-            occupied.append({
-                "bbox": lot_box["bbox"],
-                "conf": best_iou,
-                "cls": track.get("cls", 0)
-                "name": track.get("name", "vehicle"),
-                "track_id": track.get("track_id")
-            })
+            if best_lot_idx is not None:
+                matched_lot_indices.add(best_lot_idx)
+                lot_box = natural_poly[best_lot_idx]
+                occupied.append({
+                    "bbox": lot_box["bbox"],
+                    "conf": best_iou,
+                    "cls": track.get("cls", 0),
+                    "name": track.get("name", "vehicle"),
+                    "track_id": track.get("track_id")
+                })
 
         # Find unoccupied lots
         unoccupied = []

@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.utils.db import SessionLocal
 from app.models.parking_spot import ParkingSpot
 from app.models.spot_status import SpotStatus
+from app.models.parking_lot import ParkingLot
+from app.services.cv_integration import process_image_with_cv
 import json
 from datetime import datetime, timezone
 
@@ -98,3 +100,75 @@ def post_spot_status_by_bbox(payload: dict, db: Session = Depends(get_db)):
     db.refresh(ss)
 
     return {"parking_spot_id": matched.id, "status": status_text, "detected_at": ss.detected_at.isoformat()}
+
+
+@router.post("/process_image/{lot_id}", status_code=status.HTTP_200_OK)
+async def process_image(
+    lot_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Process an uploaded image using ai_cv and update parking spot statuses.
+    
+    Returns the bulk update results.
+    """
+    # Verify lot exists
+    lot = db.query(ParkingLot).filter(ParkingLot.id == lot_id).first()
+    if not lot:
+        raise HTTPException(status_code=404, detail="Parking lot not found")
+    
+    # Get all parking spots for this lot
+    spots = db.query(ParkingSpot).filter(ParkingSpot.parking_lot_id == lot_id).all()
+    if not spots:
+        raise HTTPException(status_code=400, detail="No parking spots defined for this lot. Initialize spots first.")
+    
+    # Convert spots to dict format for processing
+    spots_data = []
+    for spot in spots:
+        spot_dict = {
+            "id": spot.id,
+            "polygon": spot.polygon  # Already JSON or list
+        }
+        spots_data.append(spot_dict)
+    
+    # Read image data
+    try:
+        image_data = await image.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read image: {str(e)}")
+    
+    # Process image with CV
+    try:
+        updates = process_image_with_cv(image_data, spots_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CV processing failed: {str(e)}")
+    
+    if not updates:
+        return {"updated": [], "message": "No updates generated"}
+    
+    # Apply updates via bulk_update logic
+    results = []
+    for u in updates:
+        spot_id = u.get("spot_id")
+        status_val = u.get("status")
+        meta = u.get("meta")
+        
+        spot = db.query(ParkingSpot).filter(ParkingSpot.id == spot_id, ParkingSpot.parking_lot_id == lot_id).first()
+        if not spot:
+            results.append({"spot_id": spot_id, "status": "not_found"})
+            continue
+        
+        ss = SpotStatus(
+            parking_spot_id=spot.id,
+            status=status_val,
+            detection_method="ai_cv",
+            meta=json.dumps(meta) if meta else None
+        )
+        db.add(ss)
+        spot.current_status = status_val
+        db.add(spot)
+        results.append({"spot_id": spot.id, "status": status_val})
+    
+    db.commit()
+    return {"updated": results, "lot_id": lot_id}
