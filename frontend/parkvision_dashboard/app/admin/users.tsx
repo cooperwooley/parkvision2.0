@@ -11,18 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { authStorage } from "../../lib/auth-storage";
-
-const API_URL = "http://localhost:8000";
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  is_admin: boolean;
-  created_at: string;
-  last_login: string | null;
-}
+import { api, User } from "../../src/api";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -38,20 +27,11 @@ export default function UsersPage() {
   // Fetch all users
   const fetchUsers = async () => {
     try {
-      const token = await authStorage.get();
-      const res = await fetch(`${API_URL}/auth/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Failed to fetch users");
-
-      const data = await res.json();
+      const data = await api.auth.getAllUsers();
       setUsers(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      Alert.alert("Error", "Could not load users");
+      Alert.alert("Error", err.message || "Could not load users");
     } finally {
       setLoading(false);
     }
@@ -69,21 +49,7 @@ export default function UsersPage() {
     }
 
     try {
-      const token = await authStorage.get();
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to create user");
-      }
-
+      await api.auth.register(username, email, password);
       Alert.alert("Success", "User created successfully");
       resetForm();
       fetchUsers();
@@ -100,24 +66,10 @@ export default function UsersPage() {
     }
 
     try {
-      const token = await authStorage.get();
-      const body: any = { username, email };
-      if (password) body.password = password;
+      const updateData: any = { username, email };
+      if (password) updateData.password = password;
 
-      const res = await fetch(`${API_URL}/auth/users/${editingUser.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to update user");
-      }
-
+      await api.auth.updateUser(editingUser.id, updateData);
       Alert.alert("Success", "User updated successfully");
       resetForm();
       fetchUsers();
@@ -138,20 +90,11 @@ export default function UsersPage() {
           style: "destructive",
           onPress: async () => {
             try {
-              const token = await authStorage.get();
-              const res = await fetch(`${API_URL}/auth/users/${userId}`, {
-                method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-
-              if (!res.ok) throw new Error("Failed to delete user");
-
+              await api.auth.deleteUser(userId);
               Alert.alert("Success", "User deleted successfully");
               fetchUsers();
-            } catch (err) {
-              Alert.alert("Error", "Could not delete user");
+            } catch (err: any) {
+              Alert.alert("Error", err.message);
             }
           },
         },
@@ -246,9 +189,7 @@ export default function UsersPage() {
                 <Text style={{ color: "#666", marginTop: 4 }}>
                   {item.email}
                 </Text>
-                <View
-                  style={{ flexDirection: "row", marginTop: 8, gap: 8 }}
-                >
+                <View style={{ flexDirection: "row", marginTop: 8, gap: 8 }}>
                   {item.is_admin && (
                     <View
                       style={{

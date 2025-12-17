@@ -1,7 +1,7 @@
 //app/login.tsx
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
-import { authStorage } from "../lib/auth-storage";
+import { authStorage } from "../src/auth-storage";
 import { useRouter } from "expo-router";
 
 export default function LoginPage() {

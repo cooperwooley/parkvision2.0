@@ -2,7 +2,7 @@
 import { Slot, Link, useRouter } from "expo-router";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useEffect } from "react";
-import { authStorage } from "../../lib/auth-storage";
+import { authStorage } from "../../src/auth-storage";
 
 export default function AdminLayout() {
   const router = useRouter();
