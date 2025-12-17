@@ -206,8 +206,8 @@ class LotDetector:
             best_lot_idx = None
 
             for idx, lot_box in enumerate(natural_poly):
-            if idx in matched_lot_indices:
-                continue
+                if idx in matched_lot_indices:
+                    continue
 
                 iou = self._poly_rect_iou(lot_box["bbox"], track["bbox"])
                 if iou > 0.3 and iou > best_iou: # IOU thresh
