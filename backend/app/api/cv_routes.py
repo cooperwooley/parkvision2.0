@@ -4,7 +4,7 @@ from app.utils.db import SessionLocal
 from app.models.parking_spot import ParkingSpot
 from app.models.spot_status import SpotStatus
 from app.models.parking_lot import ParkingLot
-from app.services.cv_integration import process_image_with_cv
+from app.services.cv_integration import process_image_with_cv, detect_parking_spots
 import json
 from datetime import datetime, timezone
 
@@ -172,3 +172,31 @@ async def process_image(
     
     db.commit()
     return {"updated": results, "lot_id": lot_id}
+
+
+@router.post("/detect_spots/", status_code=status.HTTP_200_OK)
+async def detect_spots(
+    image: UploadFile = File(...)
+):
+    """
+    Quick and dirty parking spot detection from an uploaded image.
+    Returns detected parking spots as polygons.
+    
+    This is a simple heuristic-based approach for demo purposes.
+    """
+    # Read image data
+    try:
+        image_data = await image.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read image: {str(e)}")
+    
+    # Detect spots
+    try:
+        spots = detect_parking_spots(image_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Spot detection failed: {str(e)}")
+    
+    return {
+        "detected_spots": spots,
+        "count": len(spots)
+    }

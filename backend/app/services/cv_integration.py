@@ -173,3 +173,86 @@ def _polygons_match(poly1: List, poly2: List, tolerance: float = 5.0) -> bool:
             return False
     
     return True
+
+
+def detect_parking_spots(image_data: bytes) -> List[Dict]:
+    """
+    Quick and dirty parking spot detection from an image.
+    Uses edge detection and contour finding to detect rectangular parking spots.
+    
+    Args:
+        image_data: Image bytes (e.g., from uploaded file)
+        
+    Returns:
+        List of detected spots in format: [{"polygon": [[x1,y1], [x2,y2], ...], "confidence": float}, ...]
+    """
+    # Decode image
+    nparr = np.frombuffer(image_data, np.uint8)
+    frame = cv.imdecode(nparr, cv.IMREAD_COLOR)
+    if frame is None:
+        raise ValueError("Failed to decode image")
+    
+    h, w = frame.shape[:2]
+    img_area = h * w
+    
+    # Convert to grayscale
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    
+    # Apply Gaussian blur to reduce noise
+    blurred = cv.GaussianBlur(gray, (5, 5), 0)
+    
+    # Edge detection
+    edges = cv.Canny(blurred, 50, 150)
+    
+    # Dilate edges to connect nearby lines
+    kernel = np.ones((3, 3), np.uint8)
+    dilated = cv.dilate(edges, kernel, iterations=2)
+    
+    # Find contours
+    contours, _ = cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    
+    detected_spots = []
+    
+    for contour in contours:
+        # Filter by area (parking spots should be reasonably sized)
+        area = cv.contourArea(contour)
+        min_area = img_area * 0.001  # At least 0.1% of image
+        max_area = img_area * 0.15   # At most 15% of image
+        
+        if area < min_area or area > max_area:
+            continue
+        
+        # Approximate contour to polygon
+        epsilon = 0.02 * cv.arcLength(contour, True)
+        approx = cv.approxPolyDP(contour, epsilon, True)
+        
+        # Filter for roughly rectangular shapes (3-6 vertices)
+        if len(approx) < 3 or len(approx) > 6:
+            continue
+        
+        # Get bounding rectangle to check aspect ratio
+        x, y, w_rect, h_rect = cv.boundingRect(approx)
+        aspect_ratio = w_rect / h_rect if h_rect > 0 else 0
+        
+        # Parking spots are typically rectangular (aspect ratio between 0.3 and 3.0)
+        if aspect_ratio < 0.3 or aspect_ratio > 3.0:
+            continue
+        
+        # Convert to list of points
+        polygon = [[int(point[0][0]), int(point[0][1])] for point in approx]
+        
+        # Calculate confidence based on how rectangular it is
+        rect_area = w_rect * h_rect
+        extent = area / rect_area if rect_area > 0 else 0
+        
+        detected_spots.append({
+            "polygon": polygon,
+            "confidence": float(extent),  # Higher extent = more rectangular = higher confidence
+            "area": float(area)
+        })
+    
+    # Sort by confidence (most rectangular first)
+    detected_spots.sort(key=lambda x: x["confidence"], reverse=True)
+    
+    # Limit to top 50 spots to avoid too many false positives
+    return detected_spots[:50]
